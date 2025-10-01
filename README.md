@@ -54,21 +54,42 @@ python -m whisper_dictation.daemon
 
 1. **Download Whisper model** (first time only):
    ```bash
-   whisper-cpp-download-ggml-model medium
-   ```
-   Models are saved to `~/.local/share/whisper/models/`
+   # For fast dictation (recommended):
+   cd ~/.local/share/whisper-models
+   curl -L -o ggml-base.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin
 
-2. **Start the daemon**:
+   # Or for better accuracy:
+   curl -L -o ggml-medium.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin
+   ```
+
+2. **Start ydotoold daemon** (required for text pasting):
    ```bash
-   whisper-dictation
+   ydotoold --socket-path=/run/user/1000/.ydotool_socket --socket-perm=0600 &
    ```
-   Or enable systemd service for auto-start.
 
-3. **Use dictation**:
+3. **Start the dictation daemon**:
+   ```bash
+   # Using devenv (development):
+   devenv shell
+   run-daemon           # Verbose mode (shows hotkey detection)
+   run-daemon-debug     # Debug mode (shows all key events)
+
+   # Or directly:
+   whisper-dictation --verbose
+   ```
+
+4. **Use dictation**:
    - Click in any text field
-   - Press and hold **Super+Period** (Windows key + .)
+   - Press and hold **Super+Period** (⊞ + .)
    - Speak clearly
    - Release key → text appears!
+
+5. **Switch languages** (optional):
+   ```bash
+   dictate-it    # Switch to Italian
+   dictate-en    # Switch to English
+   # Then restart daemon
+   ```
 
 ## Configuration
 
@@ -108,13 +129,19 @@ processing:
 
 ## Model Selection Guide
 
-| Model  | Size   | Speed     | Accuracy | Use Case                |
-|--------|--------|-----------|----------|-------------------------|
-| tiny   | 75 MB  | Very Fast | 60%      | Quick notes, testing    |
-| base   | 142 MB | Fast      | 65%      | Casual use              |
-| small  | 466 MB | Moderate  | 75%      | Balanced performance    |
-| medium | 1.5 GB | Slower    | 85%      | **Recommended for LLMs**|
-| large  | 2.9 GB | Slowest   | 90%      | Maximum accuracy        |
+| Model  | Size   | Speed      | Accuracy | Use Case                     |
+|--------|--------|------------|----------|------------------------------|
+| tiny   | 39 MB  | ~1-2s ⚡   | 60%      | Quick notes, testing         |
+| base   | 142 MB | ~4-6s ⚡⚡  | 70%      | **Recommended for speed**    |
+| small  | 466 MB | ~10-15s    | 80%      | Balanced performance         |
+| medium | 1.5 GB | ~20-30s    | 85%      | High accuracy for LLMs       |
+| large  | 2.9 GB | ~40-60s    | 90%      | Maximum accuracy             |
+
+**Performance notes:**
+- Times measured on CPU (4 threads)
+- GPU acceleration can reduce times by 5-10x
+- **base** model recommended for Aqua Voice-like speed
+- Switch models by editing `model:` in config.yaml
 
 ## Requirements
 
@@ -129,20 +156,44 @@ processing:
 ```bash
 # Check microphone
 ffmpeg -f pulse -i default -t 1 test.wav
+
+# Check PulseAudio/PipeWire
+pactl list sources short
 ```
 
 ### Keyboard events not detected
 ```bash
 # Add user to input group
 sudo usermod -aG input $USER
-# Reboot required
+# Logout/login required (not just reboot)
+
+# Verify input group membership
+groups | grep input
 ```
 
 ### ydotool not working
 ```bash
-# Start ydotool daemon
-systemctl --user start ydotool
+# Start ydotool daemon manually
+ydotoold --socket-path=/run/user/1000/.ydotool_socket --socket-perm=0600 &
+
+# Verify socket exists
+ls -la /run/user/1000/.ydotool_socket
+
+# Check if ydotoold is running
+pgrep -a ydotoold
 ```
+
+### Slow transcription
+```bash
+# Switch to faster model
+dictate-en           # If switching from Italian
+vim ~/.config/whisper-dictation/config.yaml
+# Change: model: base  (or tiny for ultra-fast)
+```
+
+### Virtual keyboard detected instead of real keyboard
+The daemon now automatically filters out virtual devices (ydotoold, xdotool).
+If issues persist, check logs with `run-daemon-debug` to see which devices are detected.
 
 ## Development
 

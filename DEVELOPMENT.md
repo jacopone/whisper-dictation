@@ -30,8 +30,14 @@ quality-check
 ### Development Workflow
 
 ```bash
-# Run the daemon
+# Start ydotoold (required for text pasting)
+ydotoold --socket-path=/run/user/1000/.ydotool_socket --socket-perm=0600 &
+
+# Run the daemon (verbose mode)
 run-daemon
+
+# Run daemon with full debug logging (shows all key events)
+run-daemon-debug
 
 # Run tests with coverage
 test
@@ -41,6 +47,18 @@ format
 
 # Check quality before commit
 quality-check
+```
+
+### Language Switching
+
+```bash
+# Switch to Italian
+dictate-it
+
+# Switch to English
+dictate-en
+
+# Then restart daemon for changes to take effect
 ```
 
 ## Quality Gates
