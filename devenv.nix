@@ -37,7 +37,7 @@
     gh
     gitleaks
     semgrep
-    python3Packages.commitizen
+    commitizen
 
     # Quality gates (system-wide tools)
     # Note: lizard, jscpd, radon available system-wide
@@ -262,7 +262,7 @@ EOF
     commitizen = {
       enable = true;
       name = "commitizen-check";
-      entry = "${pkgs.python3Packages.commitizen}/bin/cz check --commit-msg-file";
+      entry = "${pkgs.commitizen}/bin/cz check --commit-msg-file";
       stages = [ "commit-msg" ];
     };
   };
