@@ -16,6 +16,19 @@
     python312Packages.black
     ruff
 
+    # Python runtime dependencies (for devenv shell)
+    python312Packages.evdev
+    python312Packages.pygobject3
+    python312Packages.pyaudio
+    python312Packages.pyyaml
+
+    # Python test dependencies
+    python312Packages.pytest
+    python312Packages.pytest-cov
+    python312Packages.pytest-asyncio
+    python312Packages.coverage
+    python312Packages.pluggy
+
     # Speech-to-text and system integration
     whisper-cpp
     ffmpeg
@@ -42,17 +55,7 @@
   # https://devenv.sh/languages/
   languages.python = {
     enable = true;
-    package = pkgs.python312.withPackages (ps: with ps; [
-      # Runtime dependencies
-      evdev
-      pygobject3
-      pyaudio
-      pyyaml
-      # Test dependencies
-      pytest
-      pytest-cov
-      pytest-asyncio
-    ]);
+    package = pkgs.python312;
   };
 
   # https://devenv.sh/scripts/
