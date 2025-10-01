@@ -30,11 +30,15 @@ quality-check
 ### Development Workflow
 
 ```bash
-# Start ydotoold (required for text pasting)
+# Start ydotoold (required for text pasting - run once per session)
 ydotoold --socket-path=/run/user/1000/.ydotool_socket --socket-perm=0600 &
 
-# Run the daemon (verbose mode)
-run-daemon
+# Run the daemon with auto language detection (most convenient)
+run-daemon-auto
+
+# Run daemon with specific language (fastest)
+run-daemon-en        # English only
+run-daemon-it        # Italian only
 
 # Run daemon with full debug logging (shows all key events)
 run-daemon-debug
@@ -49,16 +53,35 @@ format
 quality-check
 ```
 
-### Language Switching
+### Language Selection
 
+**Option 1: Use convenience commands** (recommended):
 ```bash
-# Switch to Italian
-dictate-it
+run-daemon-auto      # Auto-detect language (Italian, English, Spanish, etc.)
+run-daemon-en        # English only (fastest)
+run-daemon-it        # Italian only (Italiano)
+```
 
-# Switch to English
-dictate-en
+**Option 2: Use command-line flags** (temporary override):
+```bash
+python -m whisper_dictation.daemon --verbose --language auto
+python -m whisper_dictation.daemon --verbose --language en
+python -m whisper_dictation.daemon --verbose --language it
+python -m whisper_dictation.daemon --verbose --model base
+```
 
-# Then restart daemon for changes to take effect
+**Option 3: Legacy switcher scripts** (updates config file):
+```bash
+dictate-it           # Sets config to Italian
+dictate-en           # Sets config to English
+run-daemon           # Then restart daemon
+```
+
+**Option 4: Edit config file directly**:
+```bash
+vim ~/.config/whisper-dictation/config.yaml
+# Change: language: auto  (or en, it, es, fr, etc.)
+# Change: model: base     (or tiny, small, medium, large)
 ```
 
 ## Quality Gates
