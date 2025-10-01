@@ -46,7 +46,6 @@
   # https://devenv.sh/languages/
   languages.python = {
     enable = true;
-    version = "3.12";
   };
 
   # https://devenv.sh/scripts/
