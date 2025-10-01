@@ -48,7 +48,8 @@
 
             # Create wrapper script
             makeWrapper ${pythonEnv}/bin/python3 $out/bin/whisper-dictation \
-              --add-flags "$out/lib/whisper-dictation/whisper_dictation/daemon.py" \
+              --add-flags "-m whisper_dictation" \
+              --set PYTHONPATH "$out/lib/whisper-dictation" \
               --prefix PATH : ${pkgs.lib.makeBinPath [
                 pkgs.whisper-cpp
                 pkgs.ffmpeg
