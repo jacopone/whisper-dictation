@@ -35,36 +35,74 @@ class DictationDaemon:
         self.is_recording = False
         self.keyboard_device = None
 
+    def _is_virtual_device(self, device_name):
+        """Check if device name matches virtual device patterns"""
+        virtual_patterns = [
+            "virtual", "ydotoold", "xdotool", "uinput",
+            "sleep button", "power button", "lid switch", "video bus",
+        ]
+        return any(pattern.lower() in device_name.lower() for pattern in virtual_patterns)
+
+    def _has_required_keys(self, capabilities):
+        """Check if device has letter keys and modifier keys"""
+        if ecodes.EV_KEY not in capabilities:
+            return False, False
+        keys = capabilities[ecodes.EV_KEY]
+        has_letters = ecodes.KEY_A in keys
+        has_modifiers = (
+            ecodes.KEY_LEFTMETA in keys or
+            ecodes.KEY_RIGHTMETA in keys or
+            ecodes.KEY_LEFTCTRL in keys
+        )
+        return has_letters, has_modifiers
+
+    def _select_best_keyboard(self, candidates):
+        """Select the best keyboard from candidates"""
+        if not candidates:
+            return None
+        # Prefer keyboards with "keyboard" in the name
+        for device, path in candidates:
+            if "keyboard" in device.name.lower():
+                logger.info(f"Selected keyboard: {device.name} at {path}")
+                return device
+        # Otherwise return the first candidate
+        device, path = candidates[0]
+        logger.info(f"Selected first candidate: {device.name} at {path}")
+        return device
+
     def find_keyboard_device(self):
         """Find the main keyboard device that supports our hotkey"""
+        candidates = []
+
         for device_path in list_devices():
             try:
                 device = InputDevice(device_path)
-                capabilities = device.capabilities()
+                has_letters, has_modifiers = self._has_required_keys(device.capabilities())
 
-                # Check if device has key events
-                if ecodes.EV_KEY not in capabilities:
+                if not has_letters:
+                    logger.debug(f"Skip {device.name}: no letter keys")
                     continue
 
-                keys = capabilities[ecodes.EV_KEY]
+                if not has_modifiers:
+                    logger.debug(f"Skip {device.name}: no modifier keys")
+                    continue
 
-                # Check for standard keyboard keys and modifiers
-                has_letters = ecodes.KEY_A in keys
-                has_modifiers = (
-                    ecodes.KEY_LEFTMETA in keys
-                    or ecodes.KEY_RIGHTMETA in keys
-                    or ecodes.KEY_LEFTCTRL in keys
-                )
+                if self._is_virtual_device(device.name):
+                    logger.info(f"Skip virtual device: {device.name} at {device_path}")
+                    continue
 
-                if has_letters and has_modifiers:
-                    logger.info(f"Found keyboard device: {device.name} at {device_path}")
-                    return device
+                logger.info(f"Candidate keyboard: {device.name} at {device_path}")
+                candidates.append((device, device_path))
 
             except (OSError, PermissionError) as e:
                 logger.debug(f"Cannot access {device_path}: {e}")
                 continue
 
-        return None
+        if not candidates:
+            logger.error("No suitable keyboard devices found!")
+            return None
+
+        return self._select_best_keyboard(candidates)
 
     def start_recording(self):
         """Start audio recording"""
@@ -156,7 +194,12 @@ class DictationDaemon:
         self._log_hotkey_debug(event, hotkey_key, hotkey_modifiers, has_modifiers, hotkey_pressed)
 
         # Handle hotkey press
-        if has_modifiers and event.code == hotkey_key and event.value == 1 and not self.is_recording:
+        if (
+            has_modifiers
+            and event.code == hotkey_key
+            and event.value == 1
+            and not self.is_recording
+        ):
             logger.info("🎤 HOTKEY COMBO DETECTED - Starting recording!")
             self.start_recording()
 
