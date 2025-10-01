@@ -2,4 +2,4 @@
 # Ignore example code in documentation
 
 # Cursor AI security rules contain example bad code (for teaching)
-.cursor/rules/security.mdc:269
+.cursor/rules/security.mdc:generic-api-key:269

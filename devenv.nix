@@ -80,18 +80,30 @@
       echo "  setup-dev         - Setup git hooks and project"
       echo "  test              - Run test suite"
       echo "  quality-check     - Run all quality gates"
-      echo "  run-daemon        - Run dictation daemon"
+      echo "  run-daemon        - Run dictation daemon (verbose)"
+      echo "  run-daemon-debug  - Run daemon with full debug logging"
       echo ""
       echo "🎯 AI Development:"
       echo "  Cursor AI rules: .cursor/rules/*.mdc"
       echo "  Use Ctrl+I for Agent mode, Ctrl+E for background"
     '';
 
-    # Run the daemon in development mode
+    # Run the daemon in development mode (with verbose logging)
     run-daemon.exec = ''
       echo "🎤 Starting Whisper Dictation daemon..."
       echo "📋 Monitoring keyboard for Super+Period"
-      python -m whisper_dictation.daemon
+      echo "💡 Verbose mode enabled (shows hotkey detection)"
+      echo ""
+      python -m whisper_dictation.daemon --verbose
+    '';
+
+    # Run the daemon with full debug logging (shows ALL key events)
+    run-daemon-debug.exec = ''
+      echo "🎤 Starting Whisper Dictation daemon (DEBUG MODE)..."
+      echo "📋 Monitoring keyboard for Super+Period"
+      echo "🐛 Debug mode enabled (shows ALL key events - will be very verbose!)"
+      echo ""
+      python -m whisper_dictation.daemon --debug
     '';
 
     # Run tests with coverage

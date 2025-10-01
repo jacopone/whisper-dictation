@@ -4,24 +4,20 @@ Main daemon for whisper-dictation
 Monitors keyboard for push-to-talk hotkey and coordinates transcription
 """
 
-import os
-import sys
-import signal
+import argparse
 import logging
+import signal
+import sys
 from pathlib import Path
-from evdev import InputDevice, categorize, ecodes, list_devices
 
+from evdev import InputDevice, ecodes, list_devices
+
+from .config import Config
+from .paste import TextPaster
 from .recorder import AudioRecorder
 from .transcriber import WhisperTranscriber
 from .ui import DictationUI
-from .paste import TextPaster
-from .config import Config
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
 logger = logging.getLogger(__name__)
 
 
@@ -55,9 +51,9 @@ class DictationDaemon:
                 # Check for standard keyboard keys and modifiers
                 has_letters = ecodes.KEY_A in keys
                 has_modifiers = (
-                    ecodes.KEY_LEFTMETA in keys or
-                    ecodes.KEY_RIGHTMETA in keys or
-                    ecodes.KEY_LEFTCTRL in keys
+                    ecodes.KEY_LEFTMETA in keys
+                    or ecodes.KEY_RIGHTMETA in keys
+                    or ecodes.KEY_LEFTCTRL in keys
                 )
 
                 if has_letters and has_modifiers:
@@ -119,21 +115,34 @@ class DictationDaemon:
             self.ui.show_error(f"Transcription failed: {error}")
 
         self.transcriber.transcribe_async(
-            audio_file,
-            on_complete=on_transcription_complete,
-            on_error=on_transcription_error
+            audio_file, on_complete=on_transcription_complete, on_error=on_transcription_error
         )
+
+    def _track_key_state(self, event):
+        """Track pressed/released keys"""
+        if event.value == 1:  # Key down
+            self.keys_pressed.add(event.code)
+            logger.debug(f"Key DOWN: {event.code} | Currently pressed: {self.keys_pressed}")
+        elif event.value == 0:  # Key up
+            self.keys_pressed.discard(event.code)
+            logger.debug(f"Key UP: {event.code} | Currently pressed: {self.keys_pressed}")
+
+    def _log_hotkey_debug(self, event, hotkey_key, hotkey_modifiers, has_modifiers, hotkey_pressed):
+        """Log hotkey matching for debugging"""
+        if event.value == 1 and (event.code == hotkey_key or event.code in hotkey_modifiers):
+            logger.info(
+                f"Hotkey component pressed: code={event.code}, "
+                f"expected_mods={hotkey_modifiers}, expected_key={hotkey_key}, "
+                f"has_mods={has_modifiers}, is_hotkey={hotkey_pressed}"
+            )
 
     def on_key_event(self, event):
         """Handle keyboard events"""
         if event.type != ecodes.EV_KEY:
             return
 
-        # Track pressed keys
-        if event.value == 1:  # Key down
-            self.keys_pressed.add(event.code)
-        elif event.value == 0:  # Key up
-            self.keys_pressed.discard(event.code)
+        # Track key state
+        self._track_key_state(event)
 
         # Get configured hotkey
         hotkey_modifiers = self.config.get_hotkey_modifiers()
@@ -141,19 +150,20 @@ class DictationDaemon:
 
         # Check if all modifiers are pressed
         has_modifiers = all(mod in self.keys_pressed for mod in hotkey_modifiers)
-
-        # Check if hotkey is pressed
         hotkey_pressed = hotkey_key in self.keys_pressed
 
-        # Start recording when hotkey combo is pressed
-        if has_modifiers and event.code == hotkey_key and event.value == 1:
-            if not self.is_recording:
-                self.start_recording()
+        # Log for debugging
+        self._log_hotkey_debug(event, hotkey_key, hotkey_modifiers, has_modifiers, hotkey_pressed)
 
-        # Stop recording when hotkey is released
-        elif event.code == hotkey_key and event.value == 0:
-            if self.is_recording:
-                self.stop_recording_and_transcribe()
+        # Handle hotkey press
+        if has_modifiers and event.code == hotkey_key and event.value == 1 and not self.is_recording:
+            logger.info("🎤 HOTKEY COMBO DETECTED - Starting recording!")
+            self.start_recording()
+
+        # Handle hotkey release
+        if event.code == hotkey_key and event.value == 0 and self.is_recording:
+            logger.info("🛑 HOTKEY RELEASED - Stopping recording!")
+            self.stop_recording_and_transcribe()
 
     def run(self):
         """Main daemon loop"""
@@ -196,6 +206,26 @@ class DictationDaemon:
 
 def main():
     """Entry point"""
+    parser = argparse.ArgumentParser(description="Whisper Dictation Daemon")
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Enable debug logging (shows all key events)"
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enable verbose logging (shows INFO messages)"
+    )
+    args = parser.parse_args()
+
+    # Configure logging based on flags
+    log_level = logging.WARNING  # Default: quiet
+    if args.debug:
+        log_level = logging.DEBUG
+    elif args.verbose:
+        log_level = logging.INFO
+
+    logging.basicConfig(
+        level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+
     daemon = DictationDaemon()
     daemon.run()
 
