@@ -304,11 +304,14 @@ EOF
     };
 
     # Run tests before commit
-    pytest = {
+    # Uses wrapper script that runs pytest within devenv shell
+    pytest-unit-tests = {
       enable = true;
-      name = "pytest-check";
-      entry = "pytest tests/ -q";
+      name = "pytest-unit-tests";
+      entry = "./scripts/pytest-hook.sh";
+      files = "\\.py$";
       pass_filenames = false;
+      language = "system";
     };
 
     # Commit message formatting
