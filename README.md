@@ -68,28 +68,34 @@ python -m whisper_dictation.daemon
    ```
 
 3. **Start the dictation daemon**:
-   ```bash
-   # Using devenv (development):
-   devenv shell
-   run-daemon           # Verbose mode (shows hotkey detection)
-   run-daemon-debug     # Debug mode (shows all key events)
 
-   # Or directly:
-   whisper-dictation --verbose
+   **Option A: Choose language at startup** (easiest):
+   ```bash
+   devenv shell
+   run-daemon-en        # English dictation
+   run-daemon-it        # Italian dictation (Italiano)
+   run-daemon           # Use config file language
+   ```
+
+   **Option B: Command-line flags**:
+   ```bash
+   python -m whisper_dictation.daemon --verbose --language en
+   python -m whisper_dictation.daemon --verbose --language it
+   python -m whisper_dictation.daemon --verbose --model base  # Override model too
+   ```
+
+   **Option C: Edit config file** (persistent):
+   ```bash
+   vim ~/.config/whisper-dictation/config.yaml
+   # Change: language: it  (or en, es, fr, etc.)
+   run-daemon
    ```
 
 4. **Use dictation**:
    - Click in any text field
    - Press and hold **Super+Period** (⊞ + .)
-   - Speak clearly
+   - Speak clearly in your chosen language
    - Release key → text appears!
-
-5. **Switch languages** (optional):
-   ```bash
-   dictate-it    # Switch to Italian
-   dictate-en    # Switch to English
-   # Then restart daemon
-   ```
 
 ## Configuration
 

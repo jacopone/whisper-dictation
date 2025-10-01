@@ -80,8 +80,12 @@
       echo "  setup-dev         - Setup git hooks and project"
       echo "  test              - Run test suite"
       echo "  quality-check     - Run all quality gates"
-      echo "  run-daemon        - Run dictation daemon (verbose)"
-      echo "  run-daemon-debug  - Run daemon with full debug logging"
+      echo ""
+      echo "🎤 Run Daemon:"
+      echo "  run-daemon        - Default (uses config language)"
+      echo "  run-daemon-it     - Italian (Italiano)"
+      echo "  run-daemon-en     - English"
+      echo "  run-daemon-debug  - Debug mode (all key events)"
       echo ""
       echo "🎯 AI Development:"
       echo "  Cursor AI rules: .cursor/rules/*.mdc"
@@ -94,7 +98,23 @@
       echo "📋 Monitoring keyboard for Super+Period"
       echo "💡 Verbose mode enabled (shows hotkey detection)"
       echo ""
-      python -m whisper_dictation.daemon --verbose
+      python -m whisper_dictation.daemon --verbose "$@"
+    '';
+
+    # Run daemon in Italian
+    run-daemon-it.exec = ''
+      echo "🎤 Starting Whisper Dictation daemon (Italiano)..."
+      echo "📋 Premi Super+Punto per la dettatura"
+      echo ""
+      python -m whisper_dictation.daemon --verbose --language it
+    '';
+
+    # Run daemon in English
+    run-daemon-en.exec = ''
+      echo "🎤 Starting Whisper Dictation daemon (English)..."
+      echo "📋 Press Super+Period for dictation"
+      echo ""
+      python -m whisper_dictation.daemon --verbose --language en
     '';
 
     # Run the daemon with full debug logging (shows ALL key events)
@@ -103,7 +123,7 @@
       echo "📋 Monitoring keyboard for Super+Period"
       echo "🐛 Debug mode enabled (shows ALL key events - will be very verbose!)"
       echo ""
-      python -m whisper_dictation.daemon --debug
+      python -m whisper_dictation.daemon --debug "$@"
     '';
 
     # Run tests with coverage

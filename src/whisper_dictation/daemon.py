@@ -262,6 +262,18 @@ def main():
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose logging (shows INFO messages)"
     )
+    parser.add_argument(
+        "-l",
+        "--language",
+        type=str,
+        help="Override language (en, it, es, fr, etc.). Default: from config file",
+    )
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        help="Override model (tiny, base, small, medium, large). Default: from config file",
+    )
     args = parser.parse_args()
 
     # Configure logging based on flags
@@ -276,6 +288,16 @@ def main():
     )
 
     daemon = DictationDaemon()
+
+    # Override config with command-line arguments
+    if args.language:
+        daemon.config.config["whisper"]["language"] = args.language
+        logger.info(f"Language override: {args.language}")
+
+    if args.model:
+        daemon.config.config["whisper"]["model"] = args.model
+        logger.info(f"Model override: {args.model}")
+
     daemon.run()
 
 
