@@ -38,8 +38,14 @@ class DictationDaemon:
     def _is_virtual_device(self, device_name):
         """Check if device name matches virtual device patterns"""
         virtual_patterns = [
-            "virtual", "ydotoold", "xdotool", "uinput",
-            "sleep button", "power button", "lid switch", "video bus",
+            "virtual",
+            "ydotoold",
+            "xdotool",
+            "uinput",
+            "sleep button",
+            "power button",
+            "lid switch",
+            "video bus",
         ]
         return any(pattern.lower() in device_name.lower() for pattern in virtual_patterns)
 
@@ -50,9 +56,9 @@ class DictationDaemon:
         keys = capabilities[ecodes.EV_KEY]
         has_letters = ecodes.KEY_A in keys
         has_modifiers = (
-            ecodes.KEY_LEFTMETA in keys or
-            ecodes.KEY_RIGHTMETA in keys or
-            ecodes.KEY_LEFTCTRL in keys
+            ecodes.KEY_LEFTMETA in keys
+            or ecodes.KEY_RIGHTMETA in keys
+            or ecodes.KEY_LEFTCTRL in keys
         )
         return has_letters, has_modifiers
 
@@ -186,8 +192,8 @@ class DictationDaemon:
         hotkey_modifiers = self.config.get_hotkey_modifiers()
         hotkey_key = self.config.get_hotkey_key()
 
-        # Check if all modifiers are pressed
-        has_modifiers = all(mod in self.keys_pressed for mod in hotkey_modifiers)
+        # Check if ANY of the modifier keys are pressed (e.g., left OR right Super)
+        has_modifiers = any(mod in self.keys_pressed for mod in hotkey_modifiers)
         hotkey_pressed = hotkey_key in self.keys_pressed
 
         # Log for debugging
