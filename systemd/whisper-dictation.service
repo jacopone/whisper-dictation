@@ -1,0 +1,20 @@
+[Unit]
+Description=Whisper Dictation - Local speech-to-text daemon
+Documentation=https://github.com/yourusername/whisper-dictation
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.nix-profile/bin/whisper-dictation
+Restart=on-failure
+RestartSec=5
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=graphical-session.target
