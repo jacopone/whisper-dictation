@@ -18,6 +18,7 @@
           pyaudio         # Audio recording
           numpy           # Audio processing
           scipy           # Signal processing
+          pyyaml          # YAML configuration
         ]);
 
         whisper-dictation = pkgs.stdenv.mkDerivation {
