@@ -1,0 +1,28 @@
+# Build artifacts
+.devenv/
+result
+result-*
+dist/
+build/
+__pycache__/
+*.pyc
+*.pyo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Environment
+.env
+.env.*
+
+# Temporary files
+/tmp/
+*.wav
+*.mp3
+
+# IDE
+.vscode/
+.idea/

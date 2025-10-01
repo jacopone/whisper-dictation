@@ -1,0 +1,5 @@
+# Gitleaks ignore file
+# Ignore example code in documentation
+
+# Cursor AI security rules contain example bad code (for teaching)
+.cursor/rules/security.mdc:269

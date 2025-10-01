@@ -33,7 +33,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--cov=src/whisper_dictation --cov-report=term-missing --cov-report=html"
+# Note: coverage args in scripts, not here (git hooks use minimal env)
 
 [tool.coverage.run]
 source = ["src/whisper_dictation"]

@@ -12,11 +12,7 @@
 
   # https://devenv.sh/packages/
   packages = with pkgs; [
-    # Python development
-    python312
-    python312Packages.pytest
-    python312Packages.pytest-cov
-    python312Packages.pytest-asyncio
+    # Python development tools
     python312Packages.black
     ruff
 
@@ -46,6 +42,17 @@
   # https://devenv.sh/languages/
   languages.python = {
     enable = true;
+    package = pkgs.python312.withPackages (ps: with ps; [
+      # Runtime dependencies
+      evdev
+      pygobject3
+      pyaudio
+      pyyaml
+      # Test dependencies
+      pytest
+      pytest-cov
+      pytest-asyncio
+    ]);
   };
 
   # https://devenv.sh/scripts/
@@ -254,7 +261,7 @@ EOF
     pytest = {
       enable = true;
       name = "pytest-check";
-      entry = "${pkgs.python312Packages.pytest}/bin/pytest tests/ -q";
+      entry = "pytest tests/ -q";
       pass_filenames = false;
     };
 
