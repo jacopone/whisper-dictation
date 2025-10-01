@@ -1,0 +1,395 @@
+---
+description: Security Rules for Keyboard Monitoring & Audio Processing
+globs:
+  - "**/daemon.py"
+  - "**/recorder.py"
+  - "**/paste.py"
+  - "**/*security*"
+alwaysApply: true
+---
+
+# Security & Privacy Rules for Whisper Dictation
+
+## Critical Security Context
+
+whisper-dictation requires privileged access:
+- `/dev/input/*` for keyboard event monitoring (requires `input` group)
+- Audio device access for microphone recording
+- Wayland socket for text insertion via ydotool
+
+**This level of access demands exceptional security diligence.**
+
+## Privacy-First Development
+
+### Keyboard Event Handling
+
+**NEVER log keyboard events:**
+```python
+# FORBIDDEN - Logs all keystrokes
+logger.debug(f"Key event: {event}")
+
+# FORBIDDEN - Logs key codes
+logger.info(f"Pressed key: {event.code}")
+
+# ACCEPTABLE - Logs state transitions only
+logger.info("Recording started")
+logger.info("Recording stopped")
+```
+
+**Rationale:** Keyboard monitoring could capture passwords, API keys, or sensitive data typed in other applications.
+
+### Audio File Security
+
+**Immediate deletion after transcription:**
+```python
+# REQUIRED pattern
+try:
+    text = transcribe(audio_file)
+    paste(text)
+finally:
+    if audio_file.exists():
+        audio_file.unlink()  # Delete immediately
+```
+
+**Secure temporary storage:**
+```python
+# Good: Use /tmp with unique names
+TEMP_DIR = Path("/tmp/whisper-dictation")
+audio_file = TEMP_DIR / f"recording-{os.getpid()}.wav"
+
+# Bad: Predictable paths vulnerable to symlink attacks
+audio_file = Path("/tmp/recording.wav")
+```
+
+### Transcription Content
+
+**Don't log transcribed text:**
+```python
+# FORBIDDEN - May contain sensitive information
+logger.info(f"Transcribed: {text}")
+
+# ACCEPTABLE - Log metadata only
+logger.info(f"Transcribed {len(text)} characters")
+```
+
+**Sanitize before processing:**
+```python
+def sanitize_for_logging(text: str) -> str:
+    """Remove potential sensitive patterns before logging"""
+    # Remove anything that looks like a password, API key, etc.
+    patterns = [
+        r'\b[A-Za-z0-9]{32,}\b',  # API keys
+        r'pass(word)?[:\s]*\S+',  # Passwords
+        r'token[:\s]*\S+',        # Tokens
+    ]
+    for pattern in patterns:
+        text = re.sub(pattern, '[REDACTED]', text, flags=re.IGNORECASE)
+    return text
+```
+
+## Permission Handling
+
+### Graceful Degradation
+
+**Check permissions before operations:**
+```python
+def check_permissions() -> list[str]:
+    """Check required permissions and return missing ones"""
+    missing = []
+
+    # Check input group membership
+    try:
+        groups = [g.gr_name for g in grp.getgrall() if os.getlogin() in g.gr_mem]
+        if 'input' not in groups:
+            missing.append("input group membership")
+    except Exception as e:
+        logger.warning(f"Could not check groups: {e}")
+
+    # Check audio device access
+    try:
+        subprocess.run(['parecord', '--help'],
+                      capture_output=True, check=True, timeout=1)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        missing.append("audio device access")
+
+    return missing
+```
+
+**Clear user guidance:**
+```python
+missing_perms = check_permissions()
+if missing_perms:
+    print("⚠️  Missing required permissions:")
+    for perm in missing_perms:
+        print(f"  - {perm}")
+    print("\n📋 Setup instructions:")
+    print("  1. Add your user to the input group:")
+    print("     sudo usermod -aG input $USER")
+    print("  2. Reboot (or log out and back in)")
+    print("  3. Verify with: groups | grep input")
+    sys.exit(1)
+```
+
+### Secure Device Access
+
+**Never use device.grab() unless absolutely necessary:**
+```python
+# AVOID if possible - prevents other apps from using keyboard
+device.grab()
+
+# PREFERRED - Non-exclusive monitoring
+for event in device.read_loop():
+    if event.type == ecodes.EV_KEY:
+        process_event(event)
+```
+
+**Validate device before use:**
+```python
+def find_keyboard_device() -> Optional[InputDevice]:
+    """Find keyboard device with validation"""
+    for path in list_devices():
+        try:
+            device = InputDevice(path)
+
+            # Verify it's actually a keyboard
+            caps = device.capabilities()
+            if ecodes.EV_KEY not in caps:
+                continue
+
+            keys = caps[ecodes.EV_KEY]
+            if ecodes.KEY_A not in keys:
+                continue  # Not a standard keyboard
+
+            return device
+        except PermissionError:
+            logger.debug(f"No permission for {path}")
+        except Exception as e:
+            logger.debug(f"Could not open {path}: {e}")
+
+    return None
+```
+
+## Input Validation & Sanitization
+
+### Audio File Validation
+
+**Verify audio files before processing:**
+```python
+def validate_audio_file(path: Path) -> bool:
+    """Validate audio file before transcription"""
+    if not path.exists():
+        logger.error(f"Audio file not found: {path}")
+        return False
+
+    # Check file size (min 10KB, max 100MB)
+    size = path.stat().st_size
+    if size < 10_000:
+        logger.warning(f"Audio file too small: {size} bytes")
+        return False
+    if size > 100_000_000:
+        logger.error(f"Audio file too large: {size} bytes")
+        return False
+
+    # Verify it's actually a WAV file (magic bytes)
+    with open(path, 'rb') as f:
+        magic = f.read(4)
+        if magic != b'RIFF':
+            logger.error(f"Invalid WAV file: {path}")
+            return False
+
+    return True
+```
+
+### Command Injection Prevention
+
+**Use list form for subprocess:**
+```python
+# SECURE - No shell injection possible
+subprocess.run([
+    'ffmpeg', '-f', 'pulse', '-i', 'default',
+    '-ar', '16000', '-ac', '1',
+    str(audio_file)
+], shell=False)  # NEVER use shell=True
+
+# VULNERABLE - Don't do this
+subprocess.run(f"ffmpeg -i {user_input}", shell=True)
+```
+
+### Path Traversal Prevention
+
+**Validate file paths:**
+```python
+def safe_audio_path(filename: str) -> Path:
+    """Create safe audio file path"""
+    # Remove any path traversal attempts
+    safe_name = Path(filename).name
+
+    # Ensure we stay in temp directory
+    temp_dir = Path("/tmp/whisper-dictation")
+    temp_dir.mkdir(exist_ok=True)
+
+    full_path = (temp_dir / safe_name).resolve()
+
+    # Verify path is still within temp directory
+    if not str(full_path).startswith(str(temp_dir.resolve())):
+        raise ValueError(f"Path traversal attempt: {filename}")
+
+    return full_path
+```
+
+## Secure Configuration
+
+### Config File Security
+
+**Validate configuration values:**
+```python
+def validate_config(config: dict) -> None:
+    """Validate configuration for security issues"""
+    # Check model path is reasonable
+    model_path = Path(config.get('whisper', {}).get('model_path', ''))
+    if model_path.exists() and not model_path.is_file():
+        raise ValueError("Model path must be a file")
+
+    # Validate hotkey configuration
+    hotkey = config.get('hotkey', {})
+    if not hotkey.get('key'):
+        raise ValueError("Hotkey must be specified")
+
+    # Ensure temp directory is safe
+    temp_dir = config.get('temp_dir', '/tmp/whisper-dictation')
+    if not temp_dir.startswith('/tmp/'):
+        logger.warning(f"Temp directory outside /tmp: {temp_dir}")
+```
+
+### Secrets Management
+
+**Never hardcode secrets:**
+```python
+# FORBIDDEN
+API_KEY = "sk-1234567890abcdef"
+
+# ACCEPTABLE (if API support added in future)
+API_KEY = os.getenv('WHISPER_API_KEY')
+if not API_KEY and api_enabled:
+    raise ValueError("WHISPER_API_KEY environment variable not set")
+```
+
+## Error Handling
+
+### Secure Error Messages
+
+**Don't leak sensitive information in errors:**
+```python
+# BAD - Leaks filesystem structure
+raise Exception(f"Cannot read /home/user/.ssh/id_rsa")
+
+# GOOD - Generic but helpful
+raise Exception("Cannot access required file (check permissions)")
+```
+
+**Log sensitive errors separately:**
+```python
+try:
+    device = open_device(device_path)
+except PermissionError as e:
+    # User-facing: Generic message
+    logger.error("Cannot access input device (check permissions)")
+    # Debug log: Detailed information
+    logger.debug(f"Permission denied for {device_path}: {e}")
+    raise
+```
+
+## Dependency Security
+
+### Supply Chain Security
+
+**Pin dependency versions in pyproject.toml:**
+```toml
+[project]
+dependencies = [
+    "evdev>=1.9.0,<2.0.0",  # Pin major version
+    "pyyaml>=6.0.2,<7.0.0",
+]
+```
+
+**Regular security audits:**
+```bash
+# Check for known vulnerabilities (add to CI)
+safety check
+pip-audit
+```
+
+### System Package Trust
+
+**Trust system packages from NixOS:**
+- whisper-cpp: Built from source with reproducible builds
+- ffmpeg: Official NixOS package
+- ydotool: Community-reviewed NixOS package
+
+## Security Testing
+
+### Test Security Controls
+
+```python
+def test_no_keyboard_logging(caplog):
+    """Verify keyboard events are never logged"""
+    daemon = DictationDaemon()
+    # Simulate key events
+    daemon.on_key_event(mock_key_event())
+
+    # Check logs don't contain key codes
+    for record in caplog.records:
+        assert 'KEY_' not in record.message
+        assert 'keycode' not in record.message.lower()
+
+def test_audio_file_cleanup(tmp_path):
+    """Verify audio files are deleted after use"""
+    audio_file = tmp_path / "test.wav"
+    audio_file.write_bytes(b"fake audio data")
+
+    transcriber.transcribe(audio_file)
+
+    # File should be deleted
+    assert not audio_file.exists()
+
+def test_permission_errors_handled():
+    """Verify graceful handling of permission errors"""
+    with pytest.raises(SystemExit):
+        daemon = DictationDaemon()
+        daemon.run()  # Should exit with clear error message
+```
+
+## Compliance & Documentation
+
+### Document Security Implications
+
+**In README.md:**
+```markdown
+## Security & Privacy
+
+whisper-dictation requires access to:
+- **Keyboard events**: To detect push-to-talk hotkey
+- **Microphone**: To record audio for transcription
+- **System clipboard**: To paste transcribed text
+
+**Privacy guarantees:**
+- All processing happens locally (no cloud)
+- Audio files deleted immediately after transcription
+- No telemetry or data collection
+- Keyboard events processed only for configured hotkey
+```
+
+### Security Audit Checklist
+
+- [ ] No keyboard event logging
+- [ ] Audio files deleted after use
+- [ ] Transcription content not logged
+- [ ] Permission errors handled gracefully
+- [ ] No hardcoded secrets
+- [ ] Input validation for all external data
+- [ ] subprocess uses list form (no shell=True)
+- [ ] Path traversal prevention
+- [ ] Dependency versions pinned
+- [ ] Security tests pass
+
+Remember: Users trust this application with keyboard and microphone access. That trust must never be violated.

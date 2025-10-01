@@ -1,0 +1,294 @@
+---
+description: Whisper Dictation - Python Audio Development Rules
+globs:
+  - "**/*.py"
+  - "**/*.nix"
+  - "**/*.md"
+  - "**/*.yaml"
+  - "**/*.yml"
+alwaysApply: true
+---
+
+# Whisper Dictation Development Rules
+
+You are an expert AI assistant working on **whisper-dictation**, a local speech-to-text system for NixOS with push-to-talk functionality.
+
+## Project Overview
+
+**Core Functionality:**
+- Keyboard event monitoring (evdev) for push-to-talk hotkey detection
+- Audio recording with FFmpeg during key press
+- Speech-to-text transcription with whisper.cpp
+- Text insertion via ydotool (Wayland-compatible)
+- GTK4 notifications for user feedback
+
+**Technology Stack:**
+- Python 3.12 with type hints
+- evdev for low-level keyboard monitoring
+- FFmpeg for audio capture
+- whisper.cpp for offline STT
+- ydotool for Wayland text input
+- GTK4/PyGObject for UI notifications
+
+## Code Quality Standards
+
+### Complexity Management
+- **CCN < 10**: Keep functions simple and focused
+- **Max 50 lines per function**: Audio processing can get complex - break it down
+- **Avoid duplication**: DRY principle for audio/event handling patterns
+- **Meaningful names**: `start_recording()` not `sr()`
+
+### Security First (CRITICAL)
+- **Never log keyboard events**: Respect user privacy
+- **No hardcoded paths with user data**: Use Path.home() dynamically
+- **Check permissions gracefully**: Clear error messages for /dev/input access
+- **Sanitize transcriptions**: Remove sensitive patterns before logging
+- **Document security implications**: Comment on privileged operations
+
+### Testing Requirements
+- **75% minimum coverage**: Audio/event handling must be tested
+- **Mock hardware access**: Use pytest fixtures for evdev/audio devices
+- **Test error conditions**: Permission denied, no audio, model missing
+- **Integration tests**: Full workflow from key press to text paste
+
+## Python Development Patterns
+
+### Type Hints
+```python
+from pathlib import Path
+from typing import Optional, Callable
+
+def transcribe(audio_file: Path) -> Optional[str]:
+    """Always use type hints for public functions"""
+    pass
+```
+
+### Error Handling
+```python
+try:
+    device = InputDevice(device_path)
+except (OSError, PermissionError) as e:
+    logger.error(f"Cannot access {device_path}: {e}")
+    logger.info("Add user to 'input' group: sudo usermod -aG input $USER")
+    raise
+```
+
+### Logging Patterns
+```python
+import logging
+logger = logging.getLogger(__name__)
+
+# Good: Structured, informative
+logger.info(f"Started recording to {audio_file}")
+logger.warning(f"Transcription empty for {audio_file.stat().st_size} bytes")
+
+# Bad: Leaks sensitive data
+logger.debug(f"Key event: {event}")  # DON'T log keyboard events!
+```
+
+## Module-Specific Guidelines
+
+### daemon.py - Main Event Loop
+- Keep event loop simple and readable
+- Delegate complex logic to other modules
+- Handle signals (SIGTERM, SIGINT) for graceful shutdown
+- Use state machine pattern for recording states
+
+### recorder.py - Audio Capture
+- Always use subprocess for FFmpeg (not Python audio libraries)
+- Send SIGTERM for graceful WAV file closure
+- Verify audio file size before returning path
+- Handle audio device errors with clear user guidance
+
+### transcriber.py - Whisper Integration
+- Check model file exists before starting
+- Use threading for async transcription (don't block event loop)
+- Implement timeout (60s default for medium model)
+- Clean up temporary files after transcription
+
+### ui.py - GTK Notifications
+- Use GLib.idle_add for thread-safe UI updates
+- Keep notifications concise (<50 chars preview)
+- Use appropriate urgency levels (critical for errors)
+- Handle notification failures gracefully
+
+### config.py - Configuration Management
+- Load config lazily (don't fail on missing file)
+- Provide sensible defaults
+- Validate configuration values
+- Document all config options in YAML
+
+## DevEnv Integration
+
+### Available Tools
+- **pytest**: Run with `pytest tests/` or `test` script
+- **black**: Format with `black src/ tests/` or `format` script
+- **ruff**: Lint with `ruff check src/` or auto-fix with `ruff check --fix`
+- **devenv scripts**: `run-daemon`, `test`, `quality-check`
+
+### Quality Gates (Pre-commit Hooks)
+- Black formatting (auto-fix)
+- Ruff linting (auto-fix)
+- Lizard complexity (CCN < 10)
+- Pytest test suite (must pass)
+- Gitleaks secret scanning
+- Semgrep security patterns
+
+## Audio Processing Best Practices
+
+### FFmpeg Integration
+```python
+# Good: Proper signal handling
+process = subprocess.Popen([
+    'ffmpeg', '-f', 'pulse', '-i', 'default',
+    '-ar', '16000', '-ac', '1', '-acodec', 'pcm_s16le',
+    '-y', str(audio_file)
+], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+# Stop gracefully (allows WAV header to be written)
+process.terminate()
+process.wait(timeout=2)
+
+# Bad: SIGKILL doesn't write WAV header properly
+process.kill()  # DON'T DO THIS
+```
+
+### Whisper.cpp Performance
+- Use 4 threads for CPU-bound transcription
+- Medium model recommended (1.5GB) for technical terms
+- Enable GPU if available (check for CUDA/ROCm)
+- Cache model loading when possible
+
+### Real-time Constraints
+- Audio recording: <100ms latency to start
+- Transcription: <5s for 10s audio (medium model)
+- Text pasting: <300ms delay for focus
+- UI feedback: Immediate on state changes
+
+## Security & Privacy
+
+### Keyboard Monitoring Ethics
+- **Document use case**: Only for user-initiated dictation
+- **No passive monitoring**: Only when hotkey is pressed
+- **Clear user consent**: README explains /dev/input access
+- **Audit logging**: Log state changes, not keystrokes
+
+### Permission Handling
+```python
+# Good: Clear guidance
+if not device:
+    logger.error("Could not find keyboard device")
+    logger.error("Ensure you're in the 'input' group:")
+    logger.error("  sudo usermod -aG input $USER")
+    logger.error("  then reboot")
+    sys.exit(1)
+
+# Bad: Cryptic error
+if not device:
+    logger.error("Permission denied")
+    sys.exit(1)
+```
+
+### Data Minimization
+- Delete audio files immediately after transcription
+- Don't log transcribed text (may contain sensitive info)
+- Store temp files in /tmp (auto-cleanup on reboot)
+- Provide config option to disable telemetry/logging
+
+## Testing Patterns
+
+### Mocking Hardware
+```python
+@pytest.fixture
+def mock_audio_device(mocker):
+    """Mock FFmpeg subprocess for testing"""
+    process_mock = mocker.MagicMock()
+    process_mock.poll.return_value = None
+    mocker.patch('subprocess.Popen', return_value=process_mock)
+    return process_mock
+
+def test_recording_start(mock_audio_device):
+    recorder = AudioRecorder(config)
+    recorder.start()
+    assert recorder.process is not None
+```
+
+### Integration Testing
+```python
+def test_full_workflow(tmp_path):
+    """Test complete dictation workflow"""
+    # 1. Start recording
+    # 2. Simulate key press/release
+    # 3. Transcribe (use tiny model for speed)
+    # 4. Verify text output
+    pass
+```
+
+## Git Workflow
+
+### Commit Messages
+Use Conventional Commits (enforced by commitizen):
+- `feat: add streaming transcription support`
+- `fix: handle SIGTERM gracefully in recorder`
+- `docs: update README with troubleshooting section`
+- `test: add integration tests for daemon`
+
+### Branch Strategy
+- `main` - Stable releases
+- `develop` - Integration branch
+- `feature/streaming-stt` - Feature branches
+- `fix/audio-corruption` - Bug fixes
+
+## AI Assistant Guidelines
+
+### Code Generation
+1. Always check existing patterns before generating new code
+2. Respect CCN < 10 complexity limit
+3. Include type hints and docstrings
+4. Add error handling for all I/O operations
+5. Write tests alongside implementation
+
+### Refactoring
+- Maintain backward compatibility (daemon API)
+- Update tests when changing implementation
+- Document breaking changes in commit messages
+- Preserve user configuration compatibility
+
+### Documentation
+- Update README for user-facing changes
+- Add docstrings for all public functions
+- Include usage examples in CONTRIBUTING.md
+- Document security implications clearly
+
+## Performance Considerations
+
+### Memory Management
+- Clean up temporary audio files (can be 10MB+ each)
+- Limit model loading to once per daemon lifetime
+- Use generators for streaming transcription (future)
+- Monitor memory usage in long-running daemon
+
+### CPU Usage
+- Transcription is CPU-bound - use threading
+- Don't block event loop during transcription
+- Consider process pool for multiple transcriptions
+- Profile with cProfile before optimizing
+
+## Special Considerations
+
+### Wayland vs X11
+- Use ydotool (not xdotool) for Wayland compatibility
+- Test on both GNOME and Sway/Hyprland
+- Handle compositor-specific quirks
+
+### GNOME Integration
+- GTK4 for native look and feel
+- Use GSettings for system integration (future)
+- Follow GNOME HIG for UI/notifications
+
+### Multi-language Support
+- Whisper supports 99 languages
+- Allow language configuration in config.yaml
+- Test with non-Latin scripts (CJK, Arabic)
+
+Remember: This is a security-sensitive system-level daemon. Prioritize reliability, privacy, and clear error messages over clever code.

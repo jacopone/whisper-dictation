@@ -2,7 +2,10 @@
 result
 result-*
 .direnv/
-.envrc
+
+# DevEnv
+.devenv/
+.devenv.flake.nix
 
 # Python
 __pycache__/
@@ -30,6 +33,7 @@ wheels/
 .pytest_cache/
 .coverage
 htmlcov/
+.tox/
 
 # IDE
 .vscode/
@@ -42,3 +46,6 @@ htmlcov/
 *.wav
 *.mp3
 /tmp/
+
+# Config (allow template)
+.config/whisper-dictation/config.yaml
