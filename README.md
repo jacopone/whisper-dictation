@@ -69,25 +69,32 @@ python -m whisper_dictation.daemon
 
 3. **Start the dictation daemon**:
 
-   **Option A: Choose language at startup** (easiest):
+   **Option A: Auto-detect language** (most convenient):
    ```bash
    devenv shell
-   run-daemon-en        # English dictation
-   run-daemon-it        # Italian dictation (Italiano)
+   run-daemon-auto      # Detects Italian, English, Spanish, etc.
+   # Note: Adds ~1-2s processing time for detection
+   ```
+
+   **Option B: Choose specific language** (fastest):
+   ```bash
+   run-daemon-en        # English only
+   run-daemon-it        # Italian only (Italiano)
    run-daemon           # Use config file language
    ```
 
-   **Option B: Command-line flags**:
+   **Option C: Command-line flags**:
    ```bash
+   python -m whisper_dictation.daemon --verbose --language auto  # Auto-detect
    python -m whisper_dictation.daemon --verbose --language en
    python -m whisper_dictation.daemon --verbose --language it
    python -m whisper_dictation.daemon --verbose --model base  # Override model too
    ```
 
-   **Option C: Edit config file** (persistent):
+   **Option D: Edit config file** (persistent):
    ```bash
    vim ~/.config/whisper-dictation/config.yaml
-   # Change: language: it  (or en, es, fr, etc.)
+   # Change: language: auto  (or en, it, es, fr, etc.)
    run-daemon
    ```
 

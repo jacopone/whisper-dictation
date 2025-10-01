@@ -83,8 +83,9 @@
       echo ""
       echo "🎤 Run Daemon:"
       echo "  run-daemon        - Default (uses config language)"
-      echo "  run-daemon-it     - Italian (Italiano)"
-      echo "  run-daemon-en     - English"
+      echo "  run-daemon-auto   - Auto-detect language (🌍 Italian/English/etc)"
+      echo "  run-daemon-it     - Italian only (Italiano)"
+      echo "  run-daemon-en     - English only"
       echo "  run-daemon-debug  - Debug mode (all key events)"
       echo ""
       echo "🎯 AI Development:"
@@ -115,6 +116,16 @@
       echo "📋 Press Super+Period for dictation"
       echo ""
       python -m whisper_dictation.daemon --verbose --language en
+    '';
+
+    # Run daemon with auto language detection
+    run-daemon-auto.exec = ''
+      echo "🎤 Starting Whisper Dictation daemon (Auto-detect)..."
+      echo "📋 Press Super+Period for dictation"
+      echo "🌍 Will auto-detect: English, Italian, Spanish, French, etc."
+      echo "⚠️  Note: Auto-detection adds ~1-2s processing time"
+      echo ""
+      python -m whisper_dictation.daemon --verbose --language auto
     '';
 
     # Run the daemon with full debug logging (shows ALL key events)
