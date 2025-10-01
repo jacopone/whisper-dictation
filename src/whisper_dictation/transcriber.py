@@ -2,12 +2,12 @@
 Whisper transcription module
 """
 
-import subprocess
 import logging
 import re
+import subprocess
 import threading
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class WhisperTranscriber:
         self.temp_dir = Path("/tmp/whisper-dictation")
         self.temp_dir.mkdir(exist_ok=True)
 
-    def transcribe(self, audio_file: Path) -> Optional[str]:
+    def transcribe(self, audio_file: Path) -> str | None:
         """Transcribe audio file synchronously"""
         if not self.model_path.exists():
             raise FileNotFoundError(
@@ -30,7 +30,7 @@ class WhisperTranscriber:
             )
 
         output_file = self.temp_dir / "transcription"
-        text_file = output_file.with_suffix('.txt')
+        text_file = output_file.with_suffix(".txt")
 
         # Remove old transcription
         if text_file.exists():
@@ -40,16 +40,26 @@ class WhisperTranscriber:
 
         try:
             # Run whisper-cli
-            result = subprocess.run([
-                'whisper-cli',
-                '-m', str(self.model_path),
-                '-f', str(audio_file),
-                '--output-txt',
-                '--output-file', str(output_file),
-                '--no-timestamps',
-                '--language', self.config.get('whisper.language', 'en'),
-                '--threads', str(self.config.get('whisper.threads', 4))
-            ], capture_output=True, text=True, timeout=60)
+            result = subprocess.run(
+                [
+                    "whisper-cli",
+                    "-m",
+                    str(self.model_path),
+                    "-f",
+                    str(audio_file),
+                    "--output-txt",
+                    "--output-file",
+                    str(output_file),
+                    "--no-timestamps",
+                    "--language",
+                    self.config.get("whisper.language", "en"),
+                    "--threads",
+                    str(self.config.get("whisper.threads", 4)),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
 
             if result.returncode != 0:
                 logger.error(f"Whisper failed: {result.stderr}")
@@ -80,10 +90,11 @@ class WhisperTranscriber:
     def transcribe_async(
         self,
         audio_file: Path,
-        on_complete: Callable[[Optional[str]], None],
-        on_error: Callable[[str], None]
+        on_complete: Callable[[str | None], None],
+        on_error: Callable[[str], None],
     ):
         """Transcribe audio file asynchronously in background thread"""
+
         def run():
             try:
                 text = self.transcribe(audio_file)
@@ -103,12 +114,12 @@ class WhisperTranscriber:
         text = text.strip()
 
         # Remove filler words if configured
-        if self.config.get('processing.remove_filler_words', True):
-            text = re.sub(r'\b(um|uh|like|you know)\b', '', text, flags=re.IGNORECASE)
-            text = re.sub(r'\s+', ' ', text).strip()
+        if self.config.get("processing.remove_filler_words", True):
+            text = re.sub(r"\b(um|uh|like|you know)\b", "", text, flags=re.IGNORECASE)
+            text = re.sub(r"\s+", " ", text).strip()
 
         # Auto-capitalize first letter if configured
-        if self.config.get('processing.auto_capitalize', True) and text:
+        if self.config.get("processing.auto_capitalize", True) and text:
             text = text[0].upper() + text[1:]
 
         return text

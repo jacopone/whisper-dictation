@@ -2,10 +2,9 @@
 Audio recording module using ffmpeg
 """
 
-import subprocess
 import logging
+import subprocess
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,7 @@ class AudioRecorder:
         self.temp_dir = Path("/tmp/whisper-dictation")
         self.temp_dir.mkdir(exist_ok=True)
         self.audio_file = self.temp_dir / "recording.wav"
-        self.process: Optional[subprocess.Popen] = None
+        self.process: subprocess.Popen | None = None
 
     def start(self):
         """Start recording audio"""
@@ -30,22 +29,31 @@ class AudioRecorder:
         logger.info("Starting audio recording...")
 
         try:
-            self.process = subprocess.Popen([
-                'ffmpeg',
-                '-f', 'pulse',           # PulseAudio/PipeWire input
-                '-i', 'default',         # Default microphone
-                '-ar', '16000',          # 16kHz sample rate (whisper requirement)
-                '-ac', '1',              # Mono audio
-                '-acodec', 'pcm_s16le',  # 16-bit PCM
-                '-y',                    # Overwrite output file
-                str(self.audio_file)
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.process = subprocess.Popen(
+                [
+                    "ffmpeg",
+                    "-f",
+                    "pulse",  # PulseAudio/PipeWire input
+                    "-i",
+                    "default",  # Default microphone
+                    "-ar",
+                    "16000",  # 16kHz sample rate (whisper requirement)
+                    "-ac",
+                    "1",  # Mono audio
+                    "-acodec",
+                    "pcm_s16le",  # 16-bit PCM
+                    "-y",  # Overwrite output file
+                    str(self.audio_file),
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
 
         except Exception as e:
             logger.error(f"Failed to start recording: {e}")
             raise
 
-    def stop(self) -> Optional[Path]:
+    def stop(self) -> Path | None:
         """Stop recording and return audio file path"""
         if not self.process:
             return None

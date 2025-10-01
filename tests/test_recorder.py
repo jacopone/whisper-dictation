@@ -2,11 +2,12 @@
 Tests for audio recording functionality
 """
 
-import pytest
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-from whisper_dictation.recorder import AudioRecorder
+
+import pytest
+
 from whisper_dictation.config import Config
+from whisper_dictation.recorder import AudioRecorder
 
 
 @pytest.fixture
@@ -28,7 +29,7 @@ def test_recorder_initialization(recorder):
     assert recorder.process is None
 
 
-@patch('subprocess.Popen')
+@patch("subprocess.Popen")
 def test_start_recording(mock_popen, recorder):
     """Test starting audio recording"""
     mock_process = MagicMock()
@@ -41,12 +42,12 @@ def test_start_recording(mock_popen, recorder):
 
     # Verify ffmpeg command
     call_args = mock_popen.call_args[0][0]
-    assert 'ffmpeg' in call_args
-    assert '-f' in call_args
-    assert 'pulse' in call_args
+    assert "ffmpeg" in call_args
+    assert "-f" in call_args
+    assert "pulse" in call_args
 
 
-@patch('subprocess.Popen')
+@patch("subprocess.Popen")
 def test_stop_recording(mock_popen, recorder, tmp_path):
     """Test stopping audio recording"""
     # Create fake audio file
@@ -74,7 +75,7 @@ def test_stop_without_start(recorder):
     assert result is None
 
 
-@patch('subprocess.Popen')
+@patch("subprocess.Popen")
 def test_stop_with_empty_file(mock_popen, recorder, tmp_path):
     """Test stopping recording that produced empty file"""
     audio_file = tmp_path / "recording.wav"

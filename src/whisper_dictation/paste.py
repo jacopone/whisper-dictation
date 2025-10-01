@@ -2,8 +2,8 @@
 Text pasting module using ydotool
 """
 
-import subprocess
 import logging
+import subprocess
 import time
 
 logger = logging.getLogger(__name__)
@@ -19,9 +19,11 @@ class TextPaster:
     def _check_ydotool(self):
         """Check if ydotool daemon is running"""
         try:
-            result = subprocess.run(['pgrep', '-x', 'ydotoold'], capture_output=True)
+            result = subprocess.run(["pgrep", "-x", "ydotoold"], capture_output=True)
             if result.returncode != 0:
-                logger.warning("ydotool daemon not running. Start with: systemctl --user start ydotool")
+                logger.warning(
+                    "ydotool daemon not running. Start with: systemctl --user start ydotool"
+                )
         except Exception as e:
             logger.error(f"Error checking ydotool: {e}")
 
@@ -37,7 +39,7 @@ class TextPaster:
             time.sleep(0.3)
 
             # Use ydotool to type text
-            subprocess.run(['ydotool', 'type', text], check=True)
+            subprocess.run(["ydotool", "type", text], check=True)
 
             logger.info("Text pasted successfully")
 

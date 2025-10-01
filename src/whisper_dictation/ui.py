@@ -2,11 +2,13 @@
 GTK4 UI for visual feedback
 """
 
-import gi
-gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, GLib
-import subprocess
 import logging
+import subprocess
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+from gi.repository import GLib, Gtk  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +23,19 @@ class DictationUI:
     def _notify(self, title: str, message: str, urgency: str = "normal"):
         """Show desktop notification"""
         try:
-            subprocess.Popen([
-                'notify-send',
-                '-i', self.notification_icon,
-                '-u', urgency,
-                title,
-                message,
-                '-t', '3000'
-            ])
+            subprocess.Popen(
+                [
+                    "notify-send",
+                    "-i",
+                    self.notification_icon,
+                    "-u",
+                    urgency,
+                    title,
+                    message,
+                    "-t",
+                    "3000",
+                ]
+            )
         except Exception as e:
             logger.error(f"Notification error: {e}")
 
