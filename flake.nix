@@ -65,7 +65,7 @@
 
           meta = with pkgs.lib; {
             description = "Local speech-to-text dictation with push-to-talk for NixOS";
-            homepage = "https://github.com/yourusername/whisper-dictation";
+            homepage = "https://github.com/jacopone/whisper-dictation";
             license = licenses.mit;
             platforms = platforms.linux;
           };

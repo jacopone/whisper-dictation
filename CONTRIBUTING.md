@@ -6,7 +6,7 @@ Thank you for your interest in contributing! 🎉
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/whisper-dictation.git
+git clone https://github.com/jacopone/whisper-dictation.git
 cd whisper-dictation
 
 # Enter development environment

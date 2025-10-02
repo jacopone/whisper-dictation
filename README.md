@@ -21,7 +21,7 @@ Add to your `flake.nix`:
 
 ```nix
 {
-  inputs.whisper-dictation.url = "github:yourusername/whisper-dictation";
+  inputs.whisper-dictation.url = "github:jacopone/whisper-dictation";
 
   # In your configuration
   environment.systemPackages = [
@@ -40,7 +40,7 @@ Add to your `flake.nix`:
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/whisper-dictation.git
+git clone https://github.com/jacopone/whisper-dictation.git
 cd whisper-dictation
 
 # Enter development environment
