@@ -163,6 +163,9 @@ processing:
   remove_filler_words: true   # Remove "um", "uh", etc.
   auto_capitalize: true       # Capitalize first letter of sentences
   auto_punctuate: false       # Auto-add punctuation (experimental)
+
+# Manual device selection
+input_device: "/dev/input/event25"
 ```
 
 **Quick config changes:**
@@ -259,6 +262,8 @@ curl -L -o ggml-base.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/ma
 ### Virtual keyboard detected instead of real keyboard
 The daemon automatically filters out virtual devices (ydotoold, xdotool).
 If issues persist, check logs with `run-daemon-debug` to see which devices are detected.
+
+As a last resort you can manually set your input device in the configuration.
 
 ### Language not detected correctly
 ```bash
