@@ -22,6 +22,11 @@ class Config:
             "auto_capitalize": True,
             "auto_punctuate": False,
         },
+        "typing": {
+            "key_delay": 0,
+            "key_hold": 0,
+            "start_delay": 0.3,
+        },
     }
 
     # Map modifier names to ecodes

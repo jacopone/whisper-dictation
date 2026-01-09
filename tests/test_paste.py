@@ -34,6 +34,10 @@ def test_paste_text(mock_run, paster):
 
     assert "ydotool" in call_args
     assert "type" in call_args
+    assert "--key-delay" in call_args
+    assert "0" in call_args  # Default key_delay
+    assert "--key-hold" in call_args
+    assert "0" in call_args  # Default key_hold
     assert text in call_args
 
 
