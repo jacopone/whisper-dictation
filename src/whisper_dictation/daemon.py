@@ -69,15 +69,30 @@ class DictationDaemon:
         # Prefer keyboards with "keyboard" in the name
         for device, path in candidates:
             if "keyboard" in device.name.lower():
-                logger.info(f"Selected keyboard: {device.name} at {path}")
+                logger.info(f"Auto-selected keyboard: {device.name} at {path}")
                 return device
+        
         # Otherwise return the first candidate
         device, path = candidates[0]
-        logger.info(f"Selected first candidate: {device.name} at {path}")
+        logger.info(f"Auto-selected first candidate: {device.name} at {path}")
         return device
 
     def find_keyboard_device(self):
         """Find the main keyboard device that supports our hotkey"""
+        # Check for manual configuration
+        configured_device = self.config.get_input_device()
+        if configured_device:
+            logger.info(f"Looking for configured device: {configured_device}")
+            for device_path in list_devices():
+                try:
+                    device = InputDevice(device_path)
+                    if configured_device in device.name or configured_device == device_path:
+                        logger.info(f"Found configured device: {device.name} at {device_path}")
+                        return device
+                except (OSError, PermissionError):
+                    continue
+            logger.warning(f"Configured device '{configured_device}' not found! Falling back to auto-detection.")
+
         candidates = []
 
         for device_path in list_devices():

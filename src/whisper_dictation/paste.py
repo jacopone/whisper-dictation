@@ -36,10 +36,15 @@ class TextPaster:
 
         try:
             # Small delay to ensure window focus
-            time.sleep(0.3)
+            time.sleep(self.config.get("typing.start_delay", 0.3))
 
             # Use ydotool to type text
-            subprocess.run(["ydotool", "type", text], check=True)
+            key_delay = str(self.config.get("typing.key_delay", 20))
+            key_hold = str(self.config.get("typing.key_hold", 20))
+            subprocess.run(
+                ["ydotool", "type", "--key-delay", key_delay, "--key-hold", key_hold, text],
+                check=True,
+            )
 
             logger.info("Text pasted successfully")
 

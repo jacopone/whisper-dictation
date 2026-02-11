@@ -14,12 +14,18 @@ class Config:
 
     DEFAULT_CONFIG = {
         "hotkey": {"modifiers": ["super"], "key": "period"},  # super, ctrl, alt, shift
+        "input_device": None,  # Optional: manually specify device name or path (e.g. "logitech", "/dev/input/event3")
         "whisper": {"model": "medium", "language": "en", "threads": 4},
         "ui": {"show_waveform": False, "theme": "dark"},  # Not implemented yet
         "processing": {
             "remove_filler_words": True,
             "auto_capitalize": True,
             "auto_punctuate": False,
+        },
+        "typing": {
+            "key_delay": 0,
+            "key_hold": 0,
+            "start_delay": 0.3,
         },
     }
 
@@ -60,6 +66,10 @@ class Config:
             with open(self.config_path, "w") as f:
                 yaml.dump(self.DEFAULT_CONFIG, f, default_flow_style=False)
             return self.DEFAULT_CONFIG.copy()
+
+    def get_input_device(self) -> str | None:
+        """Get configured input device name or path"""
+        return self.config.get("input_device")
 
     def get_hotkey_modifiers(self) -> list[int]:
         """Get list of modifier keycodes"""

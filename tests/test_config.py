@@ -38,9 +38,11 @@ whisper:
     assert config.get("whisper.language") == "es"
 
 
-def test_hotkey_display():
+def test_hotkey_display(tmp_path):
     """Test hotkey display string generation"""
-    config = Config()
+    # Use valid config path to avoid loading from ~/.config
+    config_path = tmp_path / "config.yaml"
+    config = Config(config_path)
 
     display = config.get_hotkey_display()
 
