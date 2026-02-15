@@ -324,6 +324,11 @@ EOF
   };
 
   enterShell = ''
+    # Start ydotoold daemon if not already running
+    if ! pgrep -x ydotoold > /dev/null; then
+      ydotoold --socket-path=/run/user/1000/.ydotool_socket --socket-perm=0600 &
+      echo "✅ ydotoold daemon started"
+    fi
     hello
   '';
 }

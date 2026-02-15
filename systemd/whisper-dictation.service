@@ -5,7 +5,7 @@ After=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=%h/.nix-profile/bin/whisper-dictation
+ExecStart=/run/current-system/sw/bin/whisper-dictation
 Restart=on-failure
 RestartSec=5
 
