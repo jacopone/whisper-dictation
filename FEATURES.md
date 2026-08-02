@@ -118,7 +118,7 @@ vim ~/.config/whisper-dictation/config.yaml
 - [ ] LLM API integration (Claude, GPT-4)
 - [ ] Multi-backend support (Avalon, Deepgram)
 - [ ] Voice profiles for different contexts
-- [ ] GPU acceleration
+- [x] GPU acceleration (via Vulkan/CUDA/ROCm whisper.cpp builds -- see README)
 - [ ] systemd service auto-start
 
 ### Potential Enhancements
@@ -148,7 +148,7 @@ vim ~/.config/whisper-dictation/config.yaml
 ### Current Limitations
 - Speed slower than commercial solutions (4-6s vs 850ms for Aqua Voice)
 - Technical jargon accuracy varies by model (70-90%)
-- CPU-only processing (GPU support planned)
+- CPU-only processing by default (GPU builds available -- see README, "GPU Acceleration")
 - Single-user design (no multi-user profiles yet)
 - No streaming transcription (processes after key release)
 
@@ -162,7 +162,7 @@ vim ~/.config/whisper-dictation/config.yaml
 ### Workarounds
 - Use `base` model for faster processing (trade-off: lower accuracy)
 - Commercial alternatives (Aqua Voice, Avalon API) for maximum speed
-- GPU acceleration can reduce times by 5-10x (implementation pending)
+- GPU acceleration can reduce times by 5-10x (use the `whisper-dictation-vulkan` package)
 
 ---
 

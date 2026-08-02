@@ -21,7 +21,11 @@
           pyyaml          # YAML configuration
         ]);
 
-        whisper-dictation = pkgs.stdenv.mkDerivation {
+        # Build whisper-dictation against a given whisper.cpp package.
+        # GPU acceleration comes entirely from the whisper-cli binary, so
+        # swapping the whisper-cpp package is all it takes (see README,
+        # "GPU acceleration").
+        mkWhisperDictation = whisperCpp: pkgs.stdenv.mkDerivation {
           pname = "whisper-dictation";
           version = "0.1.0";
 
@@ -31,7 +35,7 @@
 
           buildInputs = [
             pythonEnv
-            pkgs.whisper-cpp
+            whisperCpp
             pkgs.ffmpeg
             pkgs.ydotool
             pkgs.libnotify
@@ -51,7 +55,7 @@
               --add-flags "-m whisper_dictation" \
               --set PYTHONPATH "$out/lib/whisper-dictation" \
               --prefix PATH : ${pkgs.lib.makeBinPath [
-                pkgs.whisper-cpp
+                whisperCpp
                 pkgs.ffmpeg
                 pkgs.ydotool
                 pkgs.libnotify
@@ -71,11 +75,19 @@
           };
         };
 
+        whisper-dictation = mkWhisperDictation pkgs.whisper-cpp;
+
       in {
         packages = {
           default = whisper-dictation;
           whisper-dictation = whisper-dictation;
+          # GPU-accelerated variant (Vulkan works on most GPUs, no unfree deps).
+          # For CUDA/ROCm, use lib.mkWhisperDictation — see README, "GPU acceleration".
+          whisper-dictation-vulkan = mkWhisperDictation pkgs.whisper-cpp-vulkan;
         };
+
+        # Build against a custom whisper.cpp package, e.g. a CUDA or ROCm build.
+        lib = { inherit mkWhisperDictation; };
 
         apps.default = {
           type = "app";

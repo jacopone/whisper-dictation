@@ -1,0 +1,59 @@
+# whisper-dictation reference configuration
+#
+# The daemon reads ~/.config/whisper-dictation/config.yaml and creates it
+# with these defaults on first run. Copy this file there to customize:
+#
+#   mkdir -p ~/.config/whisper-dictation
+#   cp config.yaml ~/.config/whisper-dictation/config.yaml
+#
+# Every key below is optional; omitted keys fall back to these defaults.
+
+# Push-to-talk hotkey.
+# modifiers: any of super, ctrl, alt, shift (all listed must be held)
+# key: period, comma, space, slash, semicolon
+hotkey:
+  modifiers:
+    - super
+  key: period
+
+# Input device for hotkey monitoring. null = auto-detect.
+# Set a device name substring or path if auto-detection picks the wrong one,
+# e.g. "logitech" or "/dev/input/event3". See TROUBLESHOOTING.md.
+input_device: null
+
+whisper:
+  # Model size: tiny, base, small, medium, large.
+  # base is recommended for speed; see the model guide in README.md.
+  # Download models with: whisper-cpp-download-ggml-model <model>
+  model: medium
+  # Language code (en, it, es, ...) or auto for detection.
+  language: en
+  # CPU threads used for transcription.
+  threads: 4
+  # Use the GPU when whisper-cli is built with GPU support (Vulkan/CUDA/ROCm).
+  # Has no effect on CPU-only builds. Set false to force CPU on a GPU build.
+  # See "GPU acceleration" in README.md for how to install a GPU build.
+  use_gpu: true
+
+# UI options (not implemented yet).
+ui:
+  show_waveform: false
+  theme: dark
+
+# Text post-processing applied to the transcription.
+processing:
+  # Strip filler words (um, uh, like, you know).
+  remove_filler_words: true
+  # Capitalize the first letter.
+  auto_capitalize: true
+  # Not implemented yet.
+  auto_punctuate: false
+
+# Typing/paste behavior (ydotool).
+typing:
+  # Delay between keystrokes in ms.
+  key_delay: 0
+  # Key hold time in ms.
+  key_hold: 0
+  # Seconds to wait before typing starts, so the target window regains focus.
+  start_delay: 0.3

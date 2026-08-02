@@ -50,21 +50,41 @@ def test_hotkey_display(tmp_path):
     assert "Period" in display
 
 
-def test_model_path():
+def test_model_path(tmp_path):
     """Test model path resolution"""
-    config = Config()
+    config = Config(tmp_path / "config.yaml")
 
     model_path = config.get_model_path()
 
     assert isinstance(model_path, Path)
-    # Config now uses base model (changed for speed optimization)
-    assert "ggml-base.bin" in str(model_path)
+    assert "ggml-medium.bin" in str(model_path)
 
 
-def test_config_get_with_default():
+def test_config_get_with_default(tmp_path):
     """Test get method with default value"""
-    config = Config()
+    config = Config(tmp_path / "config.yaml")
 
     assert config.get("nonexistent.key", "default") == "default"
-    # Config now uses base model (changed for speed optimization)
-    assert config.get("whisper.model") == "base"
+    assert config.get("whisper.model") == "medium"
+
+
+def test_use_gpu_default(tmp_path):
+    """Test that GPU use defaults to enabled"""
+    config_path = tmp_path / "config.yaml"
+    config = Config(config_path)
+
+    assert config.get("whisper.use_gpu") is True
+
+
+def test_repo_config_yaml_matches_defaults():
+    """The reference config.yaml in the repo must stay in sync with DEFAULT_CONFIG"""
+    import yaml
+
+    repo_config = Path(__file__).parent.parent / "config.yaml"
+
+    assert repo_config.exists(), "config.yaml missing from repository root"
+
+    with open(repo_config) as f:
+        documented = yaml.safe_load(f)
+
+    assert documented == Config.DEFAULT_CONFIG
