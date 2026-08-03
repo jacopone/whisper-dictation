@@ -38,24 +38,29 @@ class WhisperTranscriber:
 
         logger.info(f"Transcribing with model: {self.model_path.name}")
 
+        cmd = [
+            "whisper-cli",
+            "-m",
+            str(self.model_path),
+            "-f",
+            str(audio_file),
+            "--output-txt",
+            "--output-file",
+            str(output_file),
+            "--no-timestamps",
+            "--language",
+            self.config.get("whisper.language", "en"),
+            "--threads",
+            str(self.config.get("whisper.threads", 4)),
+        ]
+
+        # GPU is used automatically when whisper-cli is built with GPU support
+        if not self.config.get("whisper.use_gpu", True):
+            cmd.append("--no-gpu")
+
         try:
-            # Run whisper-cli
             result = subprocess.run(
-                [
-                    "whisper-cli",
-                    "-m",
-                    str(self.model_path),
-                    "-f",
-                    str(audio_file),
-                    "--output-txt",
-                    "--output-file",
-                    str(output_file),
-                    "--no-timestamps",
-                    "--language",
-                    self.config.get("whisper.language", "en"),
-                    "--threads",
-                    str(self.config.get("whisper.threads", 4)),
-                ],
+                cmd,
                 capture_output=True,
                 text=True,
                 timeout=60,

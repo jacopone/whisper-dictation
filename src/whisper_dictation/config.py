@@ -15,7 +15,7 @@ class Config:
     DEFAULT_CONFIG = {
         "hotkey": {"modifiers": ["super"], "key": "period"},  # super, ctrl, alt, shift
         "input_device": None,  # Optional: manually specify device name or path (e.g. "logitech", "/dev/input/event3")
-        "whisper": {"model": "medium", "language": "en", "threads": 4},
+        "whisper": {"model": "medium", "language": "en", "threads": 4, "use_gpu": True},
         "ui": {"show_waveform": False, "theme": "dark"},  # Not implemented yet
         "processing": {
             "remove_filler_words": True,

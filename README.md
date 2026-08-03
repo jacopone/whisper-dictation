@@ -82,9 +82,10 @@ Edit `~/.config/whisper-dictation/config.yaml`. Key settings:
 
 - `whisper.model` -- model size: `tiny`, `base` (recommended), `small`, `medium`, `large`
 - `whisper.language` -- language code (`en`, `it`, `auto`, etc.)
+- `whisper.use_gpu` -- use the GPU when whisper.cpp is built with GPU support (see [GPU acceleration](#gpu-acceleration))
 - `hotkey.key` / `hotkey.modifiers` -- push-to-talk keybinding
 
-See `config.yaml` in the repository for all available options.
+See [`config.yaml`](config.yaml) in the repository for all available options with documentation.
 
 <details>
 <summary>Model selection guide</summary>
@@ -97,9 +98,43 @@ See `config.yaml` in the repository for all available options.
 | medium | 1.5 GB | ~20-30s  | 85%      | High accuracy             |
 | large  | 2.9 GB | ~40-60s  | 90%      | Maximum accuracy          |
 
-Times measured on CPU (4 threads). GPU acceleration can reduce times by 5-10x.
+Times measured on CPU (4 threads). [GPU acceleration](#gpu-acceleration) can reduce times by 5-10x.
 
 </details>
+
+## GPU Acceleration
+
+Transcription runs through the `whisper-cli` binary from whisper.cpp, so GPU
+acceleration is determined entirely by how that binary is built. The default
+package is CPU-only.
+
+**Vulkan (recommended -- works on AMD, Intel, and NVIDIA GPUs):**
+
+```nix
+environment.systemPackages = [
+  inputs.whisper-dictation.packages.${system}.whisper-dictation-vulkan
+];
+```
+
+Or try it directly:
+
+```bash
+nix run github:jacopone/whisper-dictation#whisper-dictation-vulkan
+```
+
+**CUDA or ROCm:** build against your own whisper.cpp using the exposed builder
+(CUDA requires `nixpkgs.config.allowUnfree = true`):
+
+```nix
+environment.systemPackages = [
+  (inputs.whisper-dictation.lib.${system}.mkWhisperDictation
+    (pkgs.whisper-cpp.override { cudaSupport = true; }))   # or rocmSupport
+];
+```
+
+When `whisper-cli` is built with GPU support it uses the GPU automatically --
+no configuration needed. To force CPU on a GPU build, set `whisper.use_gpu: false`
+in `config.yaml`.
 
 ## How It Works
 
